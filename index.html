@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calendario de Hábitos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .day {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 5px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .day.expanded {
+      grid-column: span 2;
+      text-align: left;
+    }
+    .day-number {
+      font-weight: bold;
+    }
+    .circles {
+      display: flex;
+      justify-content: center;
+      margin-top: 5px;
+    }
+    .circle {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 0 3px;
+      border: 2px solid;
+      cursor: pointer;
+    }
+    .circle.done {
+      background-color: currentColor;
+    }
+    .habit-label {
+      display: flex;
+      align-items: center;
+      margin-top: 5px;
+      font-size: 12px;
+    }
+    .habit-label .circle {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Calendario de Hábitos</h1>
+<div id="calendar" class="calendar"></div>
+
+<script>
+  const calendarEl = document.getElementById('calendar');
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-based
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDay = new Date(year, month, 1).getDay(); // Sunday = 0
+
+  const habitData = JSON.parse(localStorage.getItem('habitData') || '{}');
+
+  function saveData() {
+    localStorage.setItem('habitData', JSON.stringify(habitData));
+  }
+
+  function getDateKey(day) {
+    return `${year}-${month + 1}-${day}`;
+  }
+
+  function createCircle(color, done, onClick) {
+    const circle = document.createElement('div');
+    circle.className = 'circle';
+    circle.style.color = color;
+    circle.style.borderColor = color;
+    if (done) circle.classList.add('done');
+    circle.onclick = onClick;
+    return circle;
+  }
+
+  function renderCalendar() {
+    calendarEl.innerHTML = '';
+
+    for (let i = 0; i < startDay; i++) {
+      calendarEl.appendChild(document.createElement('div'));
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = getDateKey(day);
+      if (!habitData[key]) habitData[key] = [false, false, false];
+      const [blueDone, orangeDone, greenDone] = habitData[key];
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day';
+      const isExpanded = dayEl.classList.contains('expanded');
+
+      const number = document.createElement('div');
+      number.className = 'day-number';
+      number.textContent = day;
+
+      const circles = document.createElement('div');
+      circles.className = 'circles';
+      circles.appendChild(createCircle('blue', blueDone, () => toggleHabit(key, 0)));
+      circles.appendChild(createCircle('orange', orangeDone, () => toggleHabit(key, 1)));
+      circles.appendChild(createCircle('green', greenDone, () => toggleHabit(key, 2)));
+
+      dayEl.onclick = () => {
+        document.querySelectorAll('.day.expanded').forEach(el => el.classList.remove('expanded'));
+        dayEl.classList.toggle('expanded');
+        renderCalendar();
+      };
+
+      dayEl.appendChild(number);
+      dayEl.appendChild(circles);
+
+      if (key === calendarEl.dataset.expanded) {
+        dayEl.classList.add('expanded');
+      }
+
+      if (dayEl.classList.contains('expanded')) {
+        const habitList = [
+          ['blue', blueDone, '8000 pasos', 0],
+          ['orange', orangeDone, '5 frutas/verduras', 1],
+          ['green', greenDone, 'Ejercicio de fuerza', 2],
+        ];
+        habitList.forEach(([color, done, label, index]) => {
+          const row = document.createElement('div');
+          row.className = 'habit-label';
+          const circle = createCircle(color, done, () => toggleHabit(key, index));
+          row.appendChild(circle);
+          const text = document.createElement('span');
+          text.textContent = label;
+          row.appendChild(text);
+          dayEl.appendChild(row);
+        });
+      }
+
+      calendarEl.appendChild(dayEl);
+    }
+  }
+
+  function toggleHabit(key, index) {
+    habitData[key][index] = !habitData[key][index];
+    saveData();
+    renderCalendar();
+  }
+
+  renderCalendar();
+</script>
+
+</body>
+</html>
