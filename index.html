@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calendario de Hábitos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 10px;
+      margin: 0;
+    }
+
+    h1, .month-nav {
+      text-align: center;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .day-names {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .day {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 5px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .day-number {
+      font-weight: bold;
+    }
+
+    .circles {
+      display: flex;
+      justify-content: center;
+      margin-top: 4px;
+    }
+
+    .circle {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 0 2px;
+      border: 2px solid;
+      cursor: pointer;
+    }
+
+    .circle.done {
+      background-color: currentColor;
+    }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      position: relative;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: #ccc;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    .habit-label {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .habit-label .circle {
+      margin-right: 8px;
+    }
+
+    .summary {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .month-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .month-nav button {
+      padding: 5px 10px;
+    }
+
+    @media (max-width: 600px) {
+      .calendar {
+        gap: 4px;
+      }
+      .modal-content {
+        width: 95%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Calendario de Hábitos</h1>
+
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">◀</button>
+    <div id="monthName"></div>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+
+  <div class="day-names">
+    <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+  </div>
+
+  <div id="calendar" class="calendar"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <div id="modal" class="modal" style="display:none;">
+    <div class="modal-content" id="modalContent">
+      <button class="close-btn" onclick="closeModal()">✕</button>
+      <h3 id="modalDate"></h3>
+      <div class="habit-label">
+        <div class="circle" style="color: blue; border-color: blue;" onclick="toggleHabit(modalKey, 0)"></div>
+        <span>8000 pasos</span>
+      </div>
+      <div class="habit-label">
+        <div class="circle" style="color: orange; border-color: orange;" onclick="toggleHabit(modalKey, 1)"></div>
+        <span>5 frutas/verduras</span>
+      </div>
+      <div class="habit-label">
+        <div class="circle" style="color: green; border-color: green;" onclick="toggleHabit(modalKey, 2)"></div>
+        <span>Ejercicio de fuerza</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const calendarEl = document.getElementById('calendar');
+  const summaryEl = document.getElementById('summary');
+  const monthNameEl = document.getElementById('monthName');
+  const modal = document.getElementById('modal');
+  const modalDate = document.getElementById('modalDate');
+  const modalContent = document.getElementById('modalContent');
+
+  let habitData = JSON.parse(localStorage.getItem('habitData') || '{}');
+  let currentDate = new Date();
+  let modalKey = '';
+
+  function saveData() {
+    localStorage.setItem('habitData', JSON.stringify(habitData));
+  }
+
+  function getDateKey(year, month, day) {
+    return `${year}-${month + 1}-${day}`;
+  }
+
+  function changeMonth(offset) {
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    renderCalendar();
+  }
+
+  function toggleHabit(key, index) {
+    habitData[key] = habitData[key] || [false, false, false];
+    habitData[key][index] = !habitData[key][index];
+    saveData();
+    renderCalendar();
+    if (modal.style.display === 'flex') openModal(key);
+  }
+
+  function openModal(key) {
+    modalKey = key;
+    const [year, month, day] = key.split('-').map(Number);
+    const labels = modal.querySelectorAll('.habit-label .circle');
+    const data = habitData[key] || [false, false, false];
+
+    labels.forEach((circle, i) => {
+      circle.classList.toggle('done', data[i]);
+    });
+
+    modalDate.textContent = `Día ${day}/${month}/${year}`;
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  function renderCalendar() {
+    calendarEl.innerHTML = '';
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 = domingo
+
+    monthNameEl.textContent = currentDate.toLocaleString('es', { month: 'long', year: 'numeric' });
+
+    // Ajustar primer día (Lunes = 0)
+    const offset = (firstDay + 6) % 7;
+    for (let i = 0; i < offset; i++) {
+      const empty = document.createElement('div');
+      calendarEl.appendChild(empty);
+    }
+
+    let total = [0, 0, 0];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const key = getDateKey(year, month, day);
+      const data = habitData[key] || [false, false, false];
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'day';
+      const number = document.createElement('div');
+      number.className = 'day-number';
+      number.textContent = day;
+
+      const circles = document.createElement('div');
+      circles.className = 'circles';
+      ['blue', 'orange', 'green'].forEach((color, i) => {
+        const circle = document.createElement('div');
+        circle.className = 'circle';
+        circle.style.color = color;
+        circle.style.borderColor = color;
+        if (data[i]) {
+          circle.classList.add('done');
+          total[i]++;
+        }
+        circles.appendChild(circle);
+      });
+
+      dayEl.appendChild(number);
+      dayEl.appendChild(circles);
+      dayEl.onclick = () => openModal(key);
+      calendarEl.appendChild(dayEl);
+    }
+
+    summaryEl.innerHTML = `
+      <b>Resumen del mes:</b><br/>
+      🟦 8000 pasos: ${total[0]} días<br/>
+      🟧 5 frutas/verduras: ${total[1]} días<br/>
+      🟩 Ejercicio de fuerza: ${total[2]} días
+    `;
+  }
+
+  renderCalendar();
+</script>
+
+</body>
+</html>
